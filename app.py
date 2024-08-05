@@ -1,0 +1,19 @@
+#LangChain Imports
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.retrieval import create_retrieval_chain
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
+from langchain.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage 
+from langchain_openai import AzureChatOpenAI
+from langchain.tools import StructuredTool
+from langchain.chains.conversation.memory import ConversationBufferMemory
+from langchain_community.chat_message_histories import ChatMessageHistory
+
+#RAG Imports
+from langchain_community.vectorstores.azure_cosmos_db import AzureCosmosDBVectorSearch, CosmosDBSimilarityType, CosmosDBVectorSearchType
+from langchain_openai import AzureOpenAIEmbeddings
+from pymongo import MongoClient
+from urllib.parse import quote_plus
