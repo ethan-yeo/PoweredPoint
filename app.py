@@ -122,34 +122,34 @@ Example:
 ]}
 """
 
-# test_topic = "the benefits of exercise"
-# test_information = """
-# Exercise plays a crucial role in maintaining both physical and mental health.
-# Engaging in regular physical activity can significantly reduce the risk of
-# chronic diseases such as heart disease, diabetes, and obesity. It also enhances
-# muscular strength, flexibility, and endurance. Beyond physical benefits, exerci
-# contributes to improved mental health by reducing symptoms of depression and an
-# boosting mood through the release of endorphins, and improving cognitive functi
-# It fosters a sense of well-being and can be a great way to manage stress.
-# Overall, incorporating exercise into one's daily routine is a key factor in
-# achieving a healthier and more balanced lifestyle.
-# """
-content_prompt = (
-    prompt_template.format(topic=test_topic, information=test_information)
-    + prompt_examples
-)
+
+def generate_test_information(query):
+    prompt = """
+    Generate a detailed and informative passage about {topic}. 
+    The passage should provide an all-encompassing view of the topic, including the topic's importance, benefits, and any relevant advice or recommendations. 
+    The language should be clear, concise, and suitable for a general audience. """
+    
+    llm_prompt = (
+    prompt.format(topic=query)
+    )
+
+    test_information = llm.invoke(llm_prompt)
+    
+    return(test_information.content)
 
 
 powerpoint_prompt = """
 You are a PowerPoint presentation specialist. You'll get a list of slides, each
-slide containing a title and content. You need to create a PowerPoint presentat
-based on the provided slides.
+slide containing a title and content. You need to create a detailed and insightful
+PowerPoint presentation based on the provided slides.
+Produce the powerpoint slides in themes relevant to the topic to make them more interesting and captivating.
+Include graphs, images and other visual elements inside powerpoint to make the presentation more engaging.
 But there is a catch: Instead of creating the presentation, provide python code
 that generates the PowerPoint presentation based on the provided slides.
 Use the package python-pptx to create the PowerPoint presentation.
 The presentation should be visually appealing and professionally designed.
 If the slides content contains more than one information, make bullet points.
-Save the presentation as 'presentation.pptx'.
+Save the presentation as 'presentation.pptx' inside the path 'static/powerpoint/'.
 Your answer should only contain the python code, no explanatory text.
 Slides:
 """
@@ -277,8 +277,43 @@ def askDocuments():
 
 
 
+@app.route("/generate_powerpoint", methods=["POST"])
+@cross_origin()
+def generatePowerPoint():
+    data = request.get_json()
+    query = data.get("query")
+    
+    # Generating the slides content
+    
+    content_prompt = (
+        prompt_template.format(topic=query, information=generate_test_information(query))
+        + prompt_examples
+    )
+    
+    slides_response = llm.invoke(content_prompt)
+    slides = slides_response.content # Assuming response is a dictionary with 'content' key
 
-# Generating the slides content
+    # Generating the PowerPoint creation code
+    presentation_code_response = llm.invoke(powerpoint_prompt + slides)
+    presentation_code = presentation_code_response.content
+
+    # Extracting the python code from the response
+    match = re.findall(r"python\n(.*?)\n```", presentation_code, re.DOTALL)
+    python_code = match[0]
+
+    # Executing the extracted Python code
+    exec(python_code)
+    # os.remove('static/powerpoint/presentation.pptx')
+    
+    
+    
+ # Generating the slides content
+query = "football"
+content_prompt = (
+    prompt_template.format(topic=query, information=generate_test_information(query))
+    + prompt_examples
+)
+
 slides_response = llm.invoke(content_prompt)
 slides = slides_response.content # Assuming response is a dictionary with 'content' key
 
