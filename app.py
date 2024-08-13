@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os 
 import re
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request , send_file
 from flask_cors import CORS, cross_origin
 
 #LangChain Imports
@@ -63,8 +63,6 @@ text_splitter = RecursiveCharacterTextSplitter(
     is_separator_regex=False
     )
 
-chat_history = []
-
 #AZURECOSMOSDB Initialization
 db_username = os.getenv('AZURECOSMOSDB_USERNAME')
 db_password = os.getenv('AZURECOSMOSDB_PASSWORD')
@@ -94,9 +92,16 @@ if COLLECTION_NAME not in db.list_collection_names():
 else:
     print("Using collection: '{}'.\n".format(COLLECTION_NAME))
 
-################################################################################################################################################################################################
+
 
 ################################################################################### PROMPTS ####################################################################################################
+raw_prompt = PromptTemplate.from_template("""
+    You are a technical assistant who is good at searching and analyzing documents. If you do not have an answer from the provided information then say so. 
+    {input}
+    Context: {context}
+    Answer:                                     
+""")
+
 
 prompt = """
 You are a power point presentation specialist. You are asked to create
@@ -122,22 +127,6 @@ Example:
 ]}
 """
 
-
-def generate_test_information(query):
-    prompt = """
-    Generate a detailed and informative passage about {topic}. 
-    The passage should provide an all-encompassing view of the topic, including the topic's importance, benefits, and any relevant advice or recommendations. 
-    The language should be clear, concise, and suitable for a general audience. """
-    
-    llm_prompt = (
-    prompt.format(topic=query)
-    )
-
-    test_information = llm.invoke(llm_prompt)
-    
-    return(test_information.content)
-
-
 powerpoint_prompt = """
 You are a PowerPoint presentation specialist. You'll get a list of slides, each
 slide containing a title and content. You need to create a detailed and insightful
@@ -153,6 +142,47 @@ Save the presentation as 'presentation.pptx' inside the path 'static/powerpoint/
 Your answer should only contain the python code, no explanatory text.
 Slides:
 """
+
+
+def generate_test_information(query):
+    prompt = """
+    Generate a detailed and informative passage with this response: {topic}. 
+    The passage should provide an all-encompassing view of the topic, including the topic's importance, benefits, and any relevant advice or recommendations. 
+    The language should be clear, concise, and suitable for a general audience. """
+    
+    llm_prompt = (
+    prompt.format(topic=query)
+    )
+
+    test_information = llm.invoke(llm_prompt)
+    
+    return(test_information.content)
+
+def generate_powerpoint(query):
+    
+    # Generating the slides content
+    
+    content_prompt = (
+        prompt_template.format(topic=query, information=generate_test_information(query))
+        + prompt_examples
+    )
+    
+    slides_response = llm.invoke(content_prompt)
+    slides = slides_response.content # Assuming response is a dictionary with 'content' key
+
+    # Generating the PowerPoint creation code
+    presentation_code_response = llm.invoke(powerpoint_prompt + slides)
+    presentation_code = presentation_code_response.content
+
+    # Extracting the python code from the response
+    match = re.findall(r"python\n(.*?)\n```", presentation_code, re.DOTALL)
+    python_code = match[0]
+
+    # Executing the extracted Python code
+    exec(python_code)
+    return send_file(path_or_file='static/powerpoint/presentation.pptx', as_attachment=True, attachment_filename='presentation.pptx')
+
+################################################################################################################################################################################################
 
 
 @app.route("/upload_documents", methods=["POST"])
@@ -223,7 +253,7 @@ def uploadDocuments():
 
     return jsonify({"status": "Successfully Uploaded", "files": responses})
 
-@app.route("/ask_documents", methods=["POST"])
+@app.route("/generate_powerpoint", methods=["POST"])
 @cross_origin()
 def askDocuments():
     data = request.get_json()
@@ -245,85 +275,47 @@ def askDocuments():
     search_kwargs={"k": 10}
     )
     
-    retriever_prompt = ChatPromptTemplate.from_messages(
-        [
-        MessagesPlaceholder(variable_name = "chat_history"),
-        ("human","{input}"),
-        ("human","Given the above conversation, generate a search query to lookup relevant documents in order to get information relevant to the conversation",),
-        ]
-                                                        )
+    # retriever_prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #     MessagesPlaceholder(variable_name = "chat_history"),
+    #     ("human","{input}"),
+    #     ("human","Given the above conversation, generate a search query to lookup relevant documents in order to get information relevant to the conversation",),
+    #     ]
+    #                                                     )
     
-    history_aware_retriever = create_history_aware_retriever(
-        llm = llm,
-        retriever = retriever,
-        prompt = retriever_prompt
-        )
+    # history_aware_retriever = create_history_aware_retriever(
+    #     llm = llm,
+    #     retriever = retriever,
+    #     prompt = retriever_prompt
+    #     )
     
-    document_chain = create_stuff_documents_chain(llm, prompt)
+    document_chain = create_stuff_documents_chain(llm, raw_prompt)
     
-    retrieval_chain = create_retrieval_chain(
-        history_aware_retriever,
-        document_chain,
-    )
+    chain = create_retrieval_chain(retriever, document_chain)
     
-    result = retrieval_chain.invoke({"input" : query})
-    print(result["answer"])
-    chat_history.append(HumanMessage(content=query))
-    chat_history.append(AIMessage(content=result["answer"]))
+    result = chain.invoke({"input" : query})
     
     response_answer = {"answer" : result["answer"]}
     
-    return response_answer
+    print(response_answer)
+    
+    # generate_powerpoint(response_answer)
+    
 
 
-
-@app.route("/generate_powerpoint", methods=["POST"])
+    
+@app.route("/reset", methods=["POST"])
 @cross_origin()
-def generatePowerPoint():
-    data = request.get_json()
-    query = data.get("query")
+def deletePowerPoint():
+    collection.drop()
+    collection.drop_indexes()
     
-    # Generating the slides content
+    file_path = 'static/powerpoint/presentation.pptx'
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    return jsonify({"status": "Database Cleared, Powerpoint Deleted"})
+
     
-    content_prompt = (
-        prompt_template.format(topic=query, information=generate_test_information(query))
-        + prompt_examples
-    )
-    
-    slides_response = llm.invoke(content_prompt)
-    slides = slides_response.content # Assuming response is a dictionary with 'content' key
-
-    # Generating the PowerPoint creation code
-    presentation_code_response = llm.invoke(powerpoint_prompt + slides)
-    presentation_code = presentation_code_response.content
-
-    # Extracting the python code from the response
-    match = re.findall(r"python\n(.*?)\n```", presentation_code, re.DOTALL)
-    python_code = match[0]
-
-    # Executing the extracted Python code
-    exec(python_code)
-    # os.remove('static/powerpoint/presentation.pptx')
-    
-    
-    
- # Generating the slides content
-query = "football"
-content_prompt = (
-    prompt_template.format(topic=query, information=generate_test_information(query))
-    + prompt_examples
-)
-
-slides_response = llm.invoke(content_prompt)
-slides = slides_response.content # Assuming response is a dictionary with 'content' key
-
-# Generating the PowerPoint creation code
-presentation_code_response = llm.invoke(powerpoint_prompt + slides)
-presentation_code = presentation_code_response.content
-
-# Extracting the python code from the response
-match = re.findall(r"python\n(.*?)\n```", presentation_code, re.DOTALL)
-python_code = match[0]
-
-# Executing the extracted Python code
-exec(python_code)
+if __name__ == '__main__':
+    app.run(debug=True)

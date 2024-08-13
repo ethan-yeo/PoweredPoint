@@ -1,0 +1,207 @@
+:root {
+  --light-bg: #f5f5f5;
+  --light-text: #333;
+  --primary-color: #4CAF50;
+  --primary-color-dark: #45a049;
+  --error-color: #f44336;
+  --error-color-dark: #d32f2f;
+  --assistant-bg-light: #ececec;
+  --user-bg-light: #dcf8c6;
+  --border-light: #eee;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  color: var(--light-text);
+  height: 100vh; /* Ensure body takes full height of the viewport */
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.chatContainer {
+  background-color: #ffffff; 
+  border-radius: 0; /* Remove border radius */
+  box-shadow: none; /* Remove box shadow */
+  width: 100%; /* Make it fill the whole width */
+  height: 100%; /* Make it fill the whole height */
+  padding: 0; /* Remove padding */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* Center content inside the container */
+}
+
+.chatContainer > * {
+  width: 100%; /* Make all direct children fill the width */
+}
+
+.title {
+  text-align: center;
+  font-size: 3rem;
+  margin-bottom: 30px;
+  color: black;
+}
+
+.Description {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.titleLine {
+  width: 100%;
+  height: 3px;
+  background-color: #333;
+  margin: 0 auto;
+}
+
+.descriptionLine {
+  margin-top: 30px;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.message {
+  margin-bottom: 15px;
+}
+
+.message p {
+  padding: 15px;
+  border-radius: 10px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.message.user {
+  text-align: right;
+}
+
+.message.user p {
+  background-color: var(--user-bg-light); /* Light mode */
+  color: var(--light-text); /* Light mode text color */
+}
+
+.message.assistant {
+  text-align: left;
+}
+
+.message.assistant p {
+  background-color: var(--assistant-bg-light); /* Light mode */
+  color: var(--light-text); /* Light mode text color */
+}
+
+.inputContainer {
+  display: flex;
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 20px;
+  border: 1px solid #ccc; /* Light mode */
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.sendButton {
+  padding: 15px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.sendButton:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.centeredContent,
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.chatContainer .sendButton,
+.chatContainer .uploadButton,
+.chatContainer .resetButton,
+.chatContainer .chooseFilesButton {
+  /* Explicitly set the background colors for each button type */
+  background-color: var(--primary-color); /* Example color, adjust as needed */
+  color: white; /* Ensure text color contrasts with the background */
+}
+
+.chatContainer .resetButton {
+  background-color: var(--error-color); /* Specific color for reset button */
+  padding: 8px 12px; 
+  font-size: 16px; 
+  color: white;
+  line-height: 1.5; 
+  border-radius: 4px; 
+  cursor: pointer;
+  margin-top: 20px;
+  margin-right: 5px;
+}
+
+.chatContainer .uploadButton {
+  background-color: #6495ED; /* Specific color for upload button */
+  padding: 8px 12px; 
+  font-size: 16px; 
+  color: white;
+  line-height: 1.5; 
+  border-radius: 4px; 
+  cursor: pointer;
+  margin-top: 20px;
+  margin-right: 10px;
+  width: 117px;
+}
+
+.chatContainer .chooseFilesButton {
+  background-color: var(--primary-color);
+  padding: 8px 12px; 
+  font-size: 16px; 
+  color: white;
+  line-height: 1.5; 
+  border-radius: 4px; 
+  cursor: pointer;
+  margin-top: 20px;
+  margin-right: 5px;
+}
+
+.chatContainer .chooseFilesButton:hover {
+  background-color: var(--primary-color-dark);
+  padding: 8px 12px; 
+  font-size: 16px; 
+  color: white;
+  line-height: 1.5; 
+  border-radius: 4px; 
+  cursor: pointer;
+  margin-top: 20px;
+  margin-right: 5px;
+}
+
+/* Ensure hover states also have specific colors */
+.chatContainer .sendButton:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.chatContainer .resetButton:hover {
+  background-color: var(--error-color-dark);
+}
+
+.chatContainer .uploadButton:hover {
+  background-color: #6F8FAF; /* Adjusted hover color for upload button */
+}
+
+.loadingText {
+  margin-left: 10px; /* Adjust the value as needed */
+}
