@@ -19,7 +19,7 @@ body {
   align-items: center;
   background-color: #ffffff;
   color: var(--light-text);
-  height: 100vh; /* Ensure body takes full height of the viewport */
+  height: 100%; /* Ensure body takes full height of the viewport */
   overflow-x: hidden;
   overflow-y: scroll;
 }
@@ -99,7 +99,6 @@ body {
 .inputContainer {
   display: flex;
   border-top: 1px solid var(--border-light);
-  padding-top: 10px;
 }
 
 .chatInput {

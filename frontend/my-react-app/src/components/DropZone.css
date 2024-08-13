@@ -57,9 +57,11 @@
   
   .delete-button {
     background: inherit;
+    color: black;
     border: none;
     cursor: pointer;
-    padding-left: 2px;
+    margin-left: 5px;
+    
 }
   
   .delete-button:hover {

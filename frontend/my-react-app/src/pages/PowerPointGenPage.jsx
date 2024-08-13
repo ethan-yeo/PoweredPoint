@@ -149,7 +149,6 @@ const PowerPointGenPage = () => {
 
         <h2 className="chatLine"></h2>
     
-        
         <form onSubmit={handleChatSubmit} className="inputContainer">
           <input
             type="text"
