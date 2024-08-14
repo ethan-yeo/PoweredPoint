@@ -132,14 +132,13 @@ You are a PowerPoint presentation specialist. You'll get a list of slides, each
 slide containing a title and content. You need to create a detailed and insightful
 PowerPoint presentation based on the provided slides.
 Produce the powerpoint slides in themes relevant to the topic to make them more interesting and captivating.
-Include graphs, images and other visual elements inside powerpoint to make the presentation more engaging.
 But there is a catch: Instead of creating the presentation, provide python code
 that generates the PowerPoint presentation based on the provided slides.
-Use the package python-pptx to create the PowerPoint presentation.
+Please Use the package python-pptx to create the PowerPoint presentation.
 The presentation should be visually appealing and professionally designed.
 If the slides content contains more than one information, make bullet points.
 Save the presentation as 'presentation.pptx' inside the path 'static/powerpoint/'.
-Your answer should only contain the python code, no explanatory text.
+Your answer must and should only contain the correct python code, no explanatory text.
 Slides:
 """
 
@@ -180,7 +179,7 @@ def generate_powerpoint(query):
 
     # Executing the extracted Python code
     exec(python_code)
-    return send_file(path_or_file='static/powerpoint/presentation.pptx', as_attachment=True, attachment_filename='presentation.pptx')
+    return send_file(path_or_file='static/powerpoint/presentation.pptx', as_attachment=True, download_name='presentation.pptx')
 
 ################################################################################################################################################################################################
 
@@ -253,6 +252,8 @@ def uploadDocuments():
 
     return jsonify({"status": "Successfully Uploaded", "files": responses})
 
+
+
 @app.route("/generate_powerpoint", methods=["POST"])
 @cross_origin()
 def askDocuments():
@@ -270,36 +271,43 @@ def askDocuments():
     index_name = INDEX_NAME,
     embedding_key=embedding_key
     )
+    
+    if vectorstore.index_exists() == False:
+        generate_powerpoint(query)
+    
+    else:
 
-    retriever = vectorstore.as_retriever(
-    search_kwargs={"k": 10}
-    )
+        retriever = vectorstore.as_retriever(
+        search_kwargs={"k": 10}
+        )
+        
+        # retriever_prompt = ChatPromptTemplate.from_messages(
+        #     [
+        #     MessagesPlaceholder(variable_name = "chat_history"),
+        #     ("human","{input}"),
+        #     ("human","Given the above conversation, generate a search query to lookup relevant documents in order to get information relevant to the conversation",),
+        #     ]
+        #                                                     )
+        
+        # history_aware_retriever = create_history_aware_retriever(
+        #     llm = llm,
+        #     retriever = retriever,
+        #     prompt = retriever_prompt
+        #     )
+        
+        document_chain = create_stuff_documents_chain(llm, raw_prompt)
+        
+        chain = create_retrieval_chain(retriever, document_chain)
+        
+        result = chain.invoke({"input" : query})
+        
+        response_answer = {"answer" : result["answer"]}
+        
+        generate_powerpoint(response_answer)
+        
+    return jsonify({"status": "Powerpoint Generated"})  
     
-    # retriever_prompt = ChatPromptTemplate.from_messages(
-    #     [
-    #     MessagesPlaceholder(variable_name = "chat_history"),
-    #     ("human","{input}"),
-    #     ("human","Given the above conversation, generate a search query to lookup relevant documents in order to get information relevant to the conversation",),
-    #     ]
-    #                                                     )
     
-    # history_aware_retriever = create_history_aware_retriever(
-    #     llm = llm,
-    #     retriever = retriever,
-    #     prompt = retriever_prompt
-    #     )
-    
-    document_chain = create_stuff_documents_chain(llm, raw_prompt)
-    
-    chain = create_retrieval_chain(retriever, document_chain)
-    
-    result = chain.invoke({"input" : query})
-    
-    response_answer = {"answer" : result["answer"]}
-    
-    print(response_answer)
-    
-    # generate_powerpoint(response_answer)
     
 
 

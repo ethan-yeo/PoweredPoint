@@ -39,6 +39,7 @@ body {
 
 .chatContainer > * {
   width: 100%; /* Make all direct children fill the width */
+  margin-top: 10px;
 }
 
 .title {

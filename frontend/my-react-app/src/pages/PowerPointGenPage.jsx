@@ -11,31 +11,23 @@ const PowerPointGenPage = () => {
   const [fileName, setFileName] = useState('');
   const [uploadStatus, setUploadStatus] = useState('');
   const [query, setQuery] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
   const [isUploading, setIsUploading] = useState(false); // Uploading state
   const [isLoading, setIsLoading] = useState(false); // Chat loading state
-  const chatBoxRef = useRef(null);
 
   const handleReset = () => {
     axios.post('http://127.0.0.1:5000/reset')
       .then(response => {
         console.log('Database cleared:', response.data.status);
-        setChatHistory([]);
-        setQuery('');
         setFileName('');
         setUploadStatus('');
-        setFile([]);
+        setQuery('');
+        setIsUploading(false);
+        setIsLoading(false);
       })
       .catch(error => {
-        console.error('There was an error clearing the /db folder:', error);
+        console.error('There was an error clearing DB', error);
       });
   };
-
-  useEffect(() => {
-    if (chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
-    }
-  }, [chatHistory]);
 
   const handleFilesAdded = (files) => {
     setFile(files);
@@ -75,108 +67,109 @@ const PowerPointGenPage = () => {
     }
   };
 
-  const handleChatSubmit = async (e) => {
+  const handlePowerPointGeneration = async (e) => {
     e.preventDefault();
+    
     if (!query.trim()) return;
-
-    const newUserMessage = { role: 'user', content: query };
-
-    setChatHistory(prevChatHistory => [...prevChatHistory, newUserMessage]);
-
-    setQuery('');
-
+  
     setIsLoading(true);
-
+  
     try {
       const response = await fetch('http://127.0.0.1:5000/generate_powerpoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query, chat_history: chatHistory }),
+        body: JSON.stringify({ query }),
       });
-    
+  
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('Failed to generate PowerPoint. Please try again.');
       }
-    
-      const res = await response.json();
-      const newAssistantMessage = { role: 'assistant', content: res.answer };
-    
-      setChatHistory(prevChatHistory => [...prevChatHistory, newAssistantMessage]);
-    
-      if (chatBoxRef.current) {
-        chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
-      }
+  
+      // Response should be the PowerPoint file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+  
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'presentation.pptx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+  
+      window.URL.revokeObjectURL(url); // Clean up the URL object
     } catch (error) {
-      console.error('Error querying PDF:', error);
+      console.error('Error generating PowerPoint:', error);
+      alert('An error occurred while generating the PowerPoint. Please try again later.');
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
 
   return (
     <div>
-      <div className="chatContainer">
-        <h1 className="title">PowerPoint Generator</h1>
-        <p className="Description">Upload your PDF documents and generate a powerpoint</p>
-        <div className="titleLine"></div>
-        <h2 className="descriptionLine">Upload Documents</h2>
-        
-        <Dropzone acceptedFileTypes={['application/pdf', 'text/plain']} onFilesAdded={handleFilesAdded} />
-        
-        <div className="buttonContainer">
-          <button onClick={handleFileUpload} className="uploadButton" aria-label="Upload Files">Upload</button>
-          <button onClick={handleReset} className="resetButton" type="button" aria-label="Reset Chat">Reset</button>
+    <div className="chatContainer">
+      <h1 className="title">PowerPoint Generator</h1>
+      <p className="Description">Upload your PDF documents and generate a PowerPoint presentation</p>
+      <div className="titleLine"></div>
+      <h2 className="descriptionLine">Upload Documents</h2>
+      
+      <Dropzone acceptedFileTypes={['application/pdf', 'text/plain']} onFilesAdded={handleFilesAdded} />
+      
+      <div className="buttonContainer">
+        <button onClick={handleFileUpload} className="uploadButton" aria-label="Upload Files">Upload</button>
+        <button onClick={handleReset} className="resetButton" type="button" aria-label="Reset">Reset</button>
+      </div>
+      
+      {isUploading && (
+        <div className="centeredContent">
+          <Oval
+            height={40}
+            width={40}
+            color="#4fa94d"
+            visible={true}
+            ariaLabel="oval-loading"
+            secondaryColor="#4fa94d"
+            strokeWidth={2}
+            strokeWidthSecondary={2}
+          />
+          <p>Uploading...</p>
         </div>
-        
-        {isUploading && (
-          <div className="centeredContent">
+      )}
+      {uploadStatus && <p>{uploadStatus}</p>}
+  
+      <form onSubmit={handlePowerPointGeneration} className="inputContainer">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Topic / information..."
+          className="chatInput"
+          aria-label="Query Input"
+        />
+        <button type="submit" className="sendButton" aria-label="Generate PowerPoint">
+          {isLoading ? (
             <Oval
-              height={40}
-              width={40}
-              color="#4fa94d"
+              height={20}
+              width={20}
+              color="#ffffff"
               visible={true}
               ariaLabel="oval-loading"
-              secondaryColor="#4fa94d"
+              secondaryColor="#ffffff"
               strokeWidth={2}
               strokeWidthSecondary={2}
             />
-            <p>Uploading...</p>
-          </div>
-        )}
-        {uploadStatus && <p>{uploadStatus}</p>}
-
-        <h2 className="chatLine"></h2>
-    
-        <form onSubmit={handleChatSubmit} className="inputContainer">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Topic / information..."
-            className="chatInput"
-            aria-label="Chat Input"
-          />
-          <button type="submit" className="sendButton" aria-label="Send Message">
-            {isLoading ? (
-              <Oval
-                height={20}
-                width={20}
-                color="#ffffff"
-                visible={true}
-                ariaLabel="oval-loading"
-                secondaryColor="#ffffff"
-                strokeWidth={2}
-                strokeWidthSecondary={2}
-              />
-            ) : (
-              'Generate'
-            )}
-          </button>
-        </form>
-      </div>
+          ) : (
+            'Generate'
+          )}
+        </button>
+      </form>
     </div>
+  </div>
+  
   );
 }
 
