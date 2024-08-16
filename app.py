@@ -131,16 +131,37 @@ powerpoint_prompt = """
 You are a PowerPoint presentation specialist. You'll get a list of slides, each
 slide containing a title and content. You need to create a detailed and insightful
 PowerPoint presentation based on the provided slides.
-Produce the powerpoint slides in themes relevant to the topic to make them more interesting and captivating.
+Produce the PowerPoint slides in themes relevant to the topic to make them more interesting and captivating.
 But there is a catch: Instead of creating the presentation, provide python code
 that generates the PowerPoint presentation based on the provided slides.
-Please Use the package python-pptx to create the PowerPoint presentation.
+Please use the package python-pptx to create the PowerPoint presentation.
 The presentation should be visually appealing and professionally designed.
-If the slides content contains more than one information, make bullet points.
-Save the presentation as 'presentation.pptx' inside the path 'static/powerpoint/'.
-Your answer must and should only contain the correct python code, no explanatory text.
+If the slides' content contains more than one information, make bullet points.
+Make sure to initialize the Presentation object with `prs = Presentation()`.
+Make sure to mport the `Pt` function from `pptx.util` for defining font sizes if it is used.
+Make sure to Save the presentation as 'presentation.pptx' inside the path 'static/powerpoint/'.
+Your answer must and should only contain the correct Python code, no explanatory text.
 Slides:
 """
+
+
+def ppt_code_checker(ppt_code):
+    prompt = """
+    Check that the following code is in the correct format by avoiding NameError: name 'prs' is not defined, Syntax Errors, and using the most updated version of python-pptx so that no errors occur during execution.  
+    Ensure that `prs = Presentation()` is initialized if not already done.
+    Ensure the presentation is saved as 'presentation.pptx' inside the path 'static/powerpoint/'. 
+    Ensure to import the `Pt` function from `pptx.util` for defining font sizes if it is used.
+    If the code is not in the correct format, correct it and generate the corrected code that can be executed. Any relevant libaries should be imported.
+    Your answer must and should only contain the correct Python code, no explanatory text.
+    Code:
+    {code}
+    """
+    llm_prompt = (
+        prompt.format(code=ppt_code)
+    )
+    correct_code = llm.invoke(llm_prompt)
+    
+    return correct_code.content
 
 
 def generate_test_information(query):
@@ -161,6 +182,11 @@ def generate_powerpoint(query):
     
     # Generating the slides content
     
+     # Check if a pptx file already exists
+    if os.path.exists('static/powerpoint/presentation.pptx'):
+        # Delete the file
+        os.remove('static/powerpoint/presentation.pptx')
+    
     content_prompt = (
         prompt_template.format(topic=query, information=generate_test_information(query))
         + prompt_examples
@@ -172,15 +198,16 @@ def generate_powerpoint(query):
     # Generating the PowerPoint creation code
     presentation_code_response = llm.invoke(powerpoint_prompt + slides)
     presentation_code = presentation_code_response.content
-
+    
+    correct_python_code = ppt_code_checker(presentation_code)
+    
     # Extracting the python code from the response
-    match = re.findall(r"python\n(.*?)\n```", presentation_code, re.DOTALL)
+    match = re.findall(r"python\n(.*?)\n```", correct_python_code, re.DOTALL)
     python_code = match[0]
 
     # Executing the extracted Python code
     exec(python_code)
-    return send_file(path_or_file='static/powerpoint/presentation.pptx', as_attachment=True, download_name='presentation.pptx')
-
+    
 ################################################################################################################################################################################################
 
 
@@ -254,9 +281,9 @@ def uploadDocuments():
 
 
 
-@app.route("/generate_powerpoint", methods=["POST"])
+@app.route("/generate_ppt", methods=["POST"])
 @cross_origin()
-def askDocuments():
+def generatePowerpoint():
     data = request.get_json()
     query = data.get("query")
     
@@ -305,14 +332,14 @@ def askDocuments():
         
         generate_powerpoint(response_answer)
         
-    return jsonify({"status": "Powerpoint Generated"})  
+    return send_file(path_or_file='static/powerpoint/presentation.pptx', as_attachment=True, mimetype= "application/vnd.openxmlformats-officedocument.presentationml.presentation" ,download_name='presentation.pptx')
     
     
     
 
 
     
-@app.route("/reset", methods=["POST"])
+@app.route("/reset_ppt", methods=["POST"])
 @cross_origin()
 def deletePowerPoint():
     collection.drop()

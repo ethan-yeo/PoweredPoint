@@ -15,7 +15,7 @@ const PowerPointGenPage = () => {
   const [isLoading, setIsLoading] = useState(false); // Chat loading state
 
   const handleReset = () => {
-    axios.post('http://127.0.0.1:5000/reset')
+    axios.post('http://127.0.0.1:5000/reset_ppt')
       .then(response => {
         console.log('Database cleared:', response.data.status);
         setFileName('');
@@ -75,7 +75,7 @@ const PowerPointGenPage = () => {
     setIsLoading(true);
   
     try {
-      const response = await fetch('http://127.0.0.1:5000/generate_powerpoint', {
+      const response = await fetch('http://127.0.0.1:5000/generate_ppt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ const PowerPointGenPage = () => {
     <div>
     <div className="chatContainer">
       <h1 className="title">PowerPoint Generator</h1>
-      <p className="Description">Upload your PDF documents and generate a PowerPoint presentation</p>
+      <p className="Description">Upload your PDF documents or submit a query to generate a powerpoint</p>
       <div className="titleLine"></div>
       <h2 className="descriptionLine">Upload Documents</h2>
       
