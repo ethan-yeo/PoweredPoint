@@ -26,6 +26,11 @@ from langchain_openai import AzureOpenAIEmbeddings
 from pymongo import MongoClient
 from urllib.parse import quote_plus
 
+
+from pptx import Presentation
+from pptx.util import Inches, Pt
+import json
+
 load_dotenv()
 app = Flask(__name__)
 
@@ -178,36 +183,89 @@ def generate_test_information(query):
     
     return(test_information.content)
 
+# def generate_powerpoint(query):
+    
+#     # Generating the slides content
+    
+#      # Check if a pptx file already exists
+#     if os.path.exists('static/powerpoint/presentation.pptx'):
+#         # Delete the file
+#         os.remove('static/powerpoint/presentation.pptx')
+    
+#     content_prompt = (
+#         prompt_template.format(topic=query, information=generate_test_information(query))
+#         + prompt_examples
+#     )
+    
+#     slides_response = llm.invoke(content_prompt)
+#     slides = slides_response.content # Assuming response is a dictionary with 'content' key
+
+#     # Generating the PowerPoint creation code
+#     presentation_code_response = llm.invoke(powerpoint_prompt + slides)
+#     presentation_code = presentation_code_response.content
+    
+#     correct_python_code = ppt_code_checker(presentation_code)
+    
+#     # Extracting the python code from the response
+#     match = re.findall(r"python\n(.*?)\n```", correct_python_code, re.DOTALL)
+#     python_code = match[0]
+
+#     # Executing the extracted Python code
+#     exec(python_code)
+
+
+from pptx import Presentation
+from pptx.util import Inches, Pt
+import json
 def generate_powerpoint(query):
-    
-    # Generating the slides content
-    
-     # Check if a pptx file already exists
-    if os.path.exists('static/powerpoint/presentation.pptx'):
-        # Delete the file
-        os.remove('static/powerpoint/presentation.pptx')
-    
+    # Generate slide content using the LLM
     content_prompt = (
         prompt_template.format(topic=query, information=generate_test_information(query))
         + prompt_examples
     )
     
     slides_response = llm.invoke(content_prompt)
-    slides = slides_response.content # Assuming response is a dictionary with 'content' key
+    slides_content_str = slides_response.content  # Get the raw string content
+    
+    try:
+        # Parse the string content as JSON
+        slides_content = json.loads(slides_content_str)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse slides content as JSON: {e}")
+        return
 
-    # Generating the PowerPoint creation code
-    presentation_code_response = llm.invoke(powerpoint_prompt + slides)
-    presentation_code = presentation_code_response.content
+    # Initialize the PowerPoint presentation
+    prs = Presentation()
     
-    correct_python_code = ppt_code_checker(presentation_code)
-    
-    # Extracting the python code from the response
-    match = re.findall(r"python\n(.*?)\n```", correct_python_code, re.DOTALL)
-    python_code = match[0]
+    # Iterate over the slides content and add them to the presentation
+    for slide in slides_content['slides']:
+        slide_layout = prs.slide_layouts[1]  # Choosing a layout with title and content
+        slide_obj = prs.slides.add_slide(slide_layout)
+        title = slide_obj.shapes.title
+        content = slide_obj.shapes.placeholders[1].text_frame
+        
+        title.text = slide['title']
+        
+        # Clear any existing paragraphs in the content placeholder
+        content.clear()
 
-    # Executing the extracted Python code
-    exec(python_code)
+        # Add content as bullet points if necessary
+        if isinstance(slide['content'], list):
+            for item in slide['content']:
+                p = content.add_paragraph()
+                p.text = item
+                p.font.size = Pt(18)
+        else:
+            p = content.add_paragraph()
+            p.text = slide['content']
+            p.font.size = Pt(18)
     
+    # Check if a pptx file already exists
+    if os.path.exists('static/powerpoint/presentation.pptx'):
+        os.remove('static/powerpoint/presentation.pptx')
+    
+    # Save the presentation
+    prs.save('static/powerpoint/presentation.pptx')
 ################################################################################################################################################################################################
 
 
