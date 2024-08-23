@@ -40,11 +40,21 @@ const PowerPointGenPage = () => {
     if (file.length === 0) return; // Don't proceed if no files are selected
   
     const formData = new FormData();
-    file.forEach((f) => {
-      if (f.type === 'application/pdf' || f.type === 'text/plain') {
-        formData.append('file', f);
-      }
-    });
+    for (const f of file) {
+        if (f.type === 'application/pdf' || f.type === 'text/plain') {
+            if (f.type === 'text/plain') {
+                // Read the file content
+                const text = await f.text();
+                // Normalize line endings to \n
+                const normalizedText = text.replace(/\r/g, '\n');
+                // Create a new Blob with the normalized content
+                const normalizedBlob = new Blob([normalizedText], { type: 'text/plain' });
+                formData.append('file', normalizedBlob, f.name);
+            } else {
+                formData.append('file', f);
+            }
+        }
+    }
     setIsUploading(true); // Start spinner
   
     try {
